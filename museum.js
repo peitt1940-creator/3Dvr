@@ -33,7 +33,7 @@ function clearXRHelp(){if(!xrHelp)return;scene.remove(xrHelp);targets=targets.fi
 function showXRHelp(title,body,opts={}){
  clearXRHelp();const group=new T.Group();xrHelp=group;scene.add(group);
  // Anchor to the rig's new position, not the previous XR camera world transform.
- let {pos,dir}=viewerAnchor();group.position.copy(pos).addScaledVector(dir,3.8);group.position.y+=1.75;group.lookAt(pos);group.scale.setScalar(1.08);let backing=mesh(new T.PlaneGeometry(2.46,1.78),new T.MeshBasicMaterial({color:0x132436}),0,.08,-.025,group);
+ let {pos,dir}=viewerAnchor();group.position.copy(pos).addScaledVector(dir,2.0);group.position.y+=2.0*Math.sqrt(3);group.lookAt(pos);group.scale.setScalar(.864);let backing=mesh(new T.PlaneGeometry(2.46,1.78),new T.MeshBasicMaterial({color:0x132436}),0,.08,-.025,group);
  const titleP=panel(title,0,.48,0,2.30,.29,group,{size:76,bg:'#294557'});
  const bodyP=panel(body,0,.06,0,2.30,.56,group,{size:59});
  const choices=opts.choices||[];if(choices.length)choices.forEach((c,i)=>{let p=panel(c.text,(i-(choices.length-1)/2)*1.1,-.37,.02,1.02,.27,group,{size:65,bg:'#356d64'});hit(p,()=>{clearXRHelp();c.fn()},station)});
@@ -196,14 +196,14 @@ let xrMenu=null,menuToggle=null,menuConfirm=null,menuOpen=false;
 const menuButtons=[],ceilingConsoles=[];let consoleNeedsAnchor=true;
 function refreshMoveLabel(){if(menuToggle)change(menuToggle,smoothMove?'搖桿移動：開啟':'搖桿移動：關閉',{size:75,bg:smoothMove?'#356d64':'#243b50'})}
 function toggleMovement(){smoothMove=!smoothMove;keys.clear();refreshMoveLabel()}
-function setMenu(open){menuOpen=open;if(xrMenu)xrMenu.visible=renderer.xr.isPresenting&&open;if(menuConfirm)menuConfirm.visible=false}
+function setMenu(open){menuOpen=open;if(xrMenu)xrMenu.visible=renderer.xr.isPresenting&&open;if(menuConfirm)menuConfirm.visible=false;if(ceilingConsoles[station])ceilingConsoles[station].visible=!open&&!xrHelp}
 function requestReset(){if(menuConfirm){menuConfirm.visible=true}}
 function resetGameInVR(){clearSuccess();smoothMove=false;keys.clear();closeInfo();clearXRHelp();clearHeld();setMenu(false);done[0]=false;done[1]=false;done[2]=false;round=0;sequence=[];cursor=0;phase='idle';deadline=0;flashIndex=0;resetStars();startBtn.visible=true;change(startBtn,'▶ 開始',{size:76,bg:'#356d64'});memoryText('準備好了？');firstMemory=true;firstBalance=true;firstPuzzle=true;resetBalance();resetPuzzle();update();refreshMoveLabel();go(0)}
 async function exitVR(){let session=renderer.xr.getSession();if(session)try{await session.end()}catch(e){$('#note').textContent='請使用頭戴裝置的系統選單離開 VR。'}}
 function addMenuButton(text,x,y,w,callback,bg='#243b50',parent=xrMenu){let p=panel(text,x,y,.015,w,.33,parent,{size:79,bg});hit(p,callback,-1);return p}
 function buildVRMenu(){xrMenu=new T.Group();scene.add(xrMenu);let base=mesh(new T.PlaneGeometry(2.05,1.93),new T.MeshBasicMaterial({color:0x101e2c}),0,-.12,-.025,xrMenu);panel('探索館選單',0,.67,.015,1.88,.28,xrMenu,{size:80});addMenuButton('返回主展館',0,.29,1.82,()=>{setMenu(false);go(0)});menuToggle=addMenuButton('搖桿移動：關閉',0,-.10,1.82,toggleMovement);addMenuButton('重新開始',-.47,-.50,.88,requestReset,'#5c4b39');addMenuButton('退出 VR',.47,-.50,.88,()=>{setMenu(false);exitVR()},'#5c4b39');addMenuButton('關閉選單',0,-.87,1.82,()=>setMenu(false),'#356d64');menuConfirm=new T.Group();menuConfirm.position.set(0,0,.075);xrMenu.add(menuConfirm);mesh(new T.PlaneGeometry(1.96,1.17),new T.MeshBasicMaterial({color:0x172c39}),0,-.05,0,menuConfirm);panel('清除進度，重新開始？',0,.27,.015,1.82,.29,menuConfirm,{size:70});addMenuButton('確定',-.46,-.17,.83,resetGameInVR,'#795143',menuConfirm);addMenuButton('取消',.46,-.17,.83,()=>menuConfirm.visible=false,'#356d64',menuConfirm);menuConfirm.visible=false;xrMenu.visible=false;
  // A single suspended, downward-facing console per room.
- for(let i=0;i<4;i++){let group=new T.Group();group.position.set(0,3.65,-3.5);group.rotation.x=Math.PI/7;group.scale.setScalar(.76);rooms[i].add(group);ceilingConsoles.push(group);let backdrop=mesh(new T.PlaneGeometry(3.75,2.15),new T.MeshBasicMaterial({color:0x132436}),0,0,-.02,group);
+ for(let i=0;i<4;i++){let group=new T.Group();group.position.set(0,3.65,-3.5);group.rotation.x=Math.PI/7;group.scale.setScalar(.608);rooms[i].add(group);ceilingConsoles.push(group);let backdrop=mesh(new T.PlaneGeometry(3.75,2.15),new T.MeshBasicMaterial({color:0x132436}),0,0,-.02,group);
  panel('探索館控制台',0,.83,.02,3.5,.30,group,{size:83,bg:'#294557'});
  let btn=(text,x,y,w,fn)=>{let p=panel(text,x,y,.03,w,.34,group,{size:82,bg:'#294557'});hit(p,fn,i);return p};
  btn('遊戲選單',-.92,.35,1.66,()=>{if(renderer.xr.isPresenting)openXRMenu();else makeInfo('遊戲選單','使用下方選單切換關卡，或重新開始。')});
@@ -213,8 +213,8 @@ function buildVRMenu(){xrMenu=new T.Group();scene.add(xrMenu);let base=mesh(new 
  panel(i===1?'觀察星星，再依順序點選':i===2?'比較積木重量，再由輕到重排序':i===3?'選擇積木、旋轉或翻面、放入輪廓':'點選展台開始探索',0,-.63,.03,3.5,.34,group,{size:82,bg:'#243b50'});layerUI(group,130);
  }layerUI(xrMenu,150);layerUI(menuConfirm,160);
 }
-function anchorConsole(){let g=ceilingConsoles[station];if(!g)return;let {pos,dir}=viewerAnchor();let p=pos.clone().addScaledVector(dir,4.0);p.y=pos.y+2.0;g.position.set(p.x-station*24,p.y,p.z);g.quaternion.setFromRotationMatrix(new T.Matrix4().lookAt(p,pos,new T.Vector3(0,1,0)));consoleNeedsAnchor=false}
-function openXRMenu(){if(!renderer.xr.isPresenting)return;clearXRHelp();rig.updateWorldMatrix(true,true);let cam=renderer.xr.getCamera(),pos=new T.Vector3(),dir=new T.Vector3();let pose=null;try{pose=xrFrame?.getViewerPose(renderer.xr.getReferenceSpace())}catch{}if(pose){let m=new T.Matrix4().fromArray(pose.transform.matrix).premultiply(rig.matrixWorld);pos.setFromMatrixPosition(m);dir.set(0,0,-1).transformDirection(m)}else{cam.getWorldPosition(pos);cam.getWorldDirection(dir)}dir.y=0;if(dir.lengthSq()<.01)dir.set(0,0,-1);dir.normalize();xrMenu.position.copy(pos).addScaledVector(dir,3.8);xrMenu.position.y+=.95;xrMenu.scale.setScalar(.88);xrMenu.lookAt(pos);setMenu(true);refreshMoveLabel()}
+function anchorConsole(){let g=ceilingConsoles[station];if(!g)return;let {pos,dir}=viewerAnchor();let p=pos.clone().addScaledVector(dir,2.0);p.y=pos.y+2.0*Math.sqrt(3);g.position.set(p.x-station*24,p.y,p.z);g.quaternion.setFromRotationMatrix(new T.Matrix4().lookAt(p,pos,new T.Vector3(0,1,0)));consoleNeedsAnchor=false}
+function openXRMenu(){if(!renderer.xr.isPresenting)return;clearXRHelp();rig.updateWorldMatrix(true,true);let cam=renderer.xr.getCamera(),pos=new T.Vector3(),dir=new T.Vector3();let pose=null;try{pose=xrFrame?.getViewerPose(renderer.xr.getReferenceSpace())}catch{}if(pose){let m=new T.Matrix4().fromArray(pose.transform.matrix).premultiply(rig.matrixWorld);pos.setFromMatrixPosition(m);dir.set(0,0,-1).transformDirection(m)}else{cam.getWorldPosition(pos);cam.getWorldDirection(dir)}dir.y=0;if(dir.lengthSq()<.01)dir.set(0,0,-1);dir.normalize();xrMenu.position.copy(pos).addScaledVector(dir,2.0);xrMenu.position.y+=2.0*Math.sqrt(3);xrMenu.scale.setScalar(.704);xrMenu.lookAt(pos);setMenu(true);refreshMoveLabel()}
 function setXRUI(on){menuButtons.forEach(b=>b.visible=on);if(!on)setMenu(false)}
 buildVRMenu();
 // Direct teleport button and floor marker in front of the balance; never land on the model.
