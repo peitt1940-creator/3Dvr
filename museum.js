@@ -39,7 +39,7 @@ function showXRHelp(title,body,opts={}){
 }
 // A selected weight is carried visually by the player, without requiring a sustained grip.
 let heldPreview=null;function clearHeld(){if(!heldPreview)return;rig.remove(heldPreview);heldPreview.traverse(o=>{if(o.isMesh){o.geometry.dispose();o.material.map?.dispose();o.material.dispose()}});heldPreview=null;}
-function showHeld(n){clearHeld();if(!renderer.xr.isPresenting)return;heldPreview=weightBlock(n,rig,.40,1.05,-.50);heldPreview.scale.setScalar(.65)}
+function showHeld(n){clearHeld();/* No near-eye model: selection remains highlighted on the rack and in the balance status. */}
 function graphic(kind,w,h,healthy=false){
  const c=document.createElement('canvas');c.width=720;c.height=400;const g=c.getContext('2d');
  g.fillStyle='#132638';g.fillRect(0,0,720,400);g.strokeStyle='#c9ad73';g.lineWidth=4;g.strokeRect(8,8,704,384);
@@ -176,8 +176,8 @@ function openXRMenu(){if(!renderer.xr.isPresenting)return;clearXRHelp();rig.upda
 function setXRUI(on){menuButtons.forEach(b=>b.visible=on);if(!on)setMenu(false)}
 buildVRMenu();
 // Direct teleport button and floor marker in front of the balance; never land on the model.
-const middleJump=()=>{rig.position.set(48,0,.05);keys.clear();setMenu(false)};
-let middleMark=tor(0,.048,.05,.62,.045,jade,rooms[2]);middleMark.rotation.x=-Math.PI/2;let middleDisk=cyl(0,.024,.05,.55,.018,new T.MeshBasicMaterial({color:0x73b8a5,transparent:true,opacity:.25}),rooms[2]);hit(middleMark,middleJump,2);hit(middleDisk,middleJump,2);
+const middleJump=()=>{rig.position.set(48,0,1.70);keys.clear();setMenu(false)};
+let middleMark=tor(0,.048,1.70,.62,.045,jade,rooms[2]);middleMark.rotation.x=-Math.PI/2;let middleDisk=cyl(0,.024,1.70,.55,.018,new T.MeshBasicMaterial({color:0x73b8a5,transparent:true,opacity:.25}),rooms[2]);hit(middleMark,middleJump,2);hit(middleDisk,middleJump,2);
 for(let [x,y,z,angle] of [[0,1.76,6.31,Math.PI]]){let p=panel('前往天秤中央',x,y,z,1.52,.34,rooms[2],{size:78,bg:'#356d64'});p.rotation.y=angle;hit(p,middleJump,2)}
 let ray=new T.Raycaster();function cast(origin,dir){scene.updateMatrixWorld(true);ray.set(origin,dir);if(menuOpen&&xrMenu?.visible){let list=menuConfirm.visible?menuConfirm.children.filter(o=>o.userData.action):xrMenu.children.filter(o=>o.userData.action);let hs=ray.intersectObjects(list,false);if(hs.length){hs[0].object.userData.action();return}return}if(dialogOpen&&!floating)return;if(floating){let hs=ray.intersectObject(floating,true);for(let h of hs){if(h.object.userData.action){h.object.userData.action();return}}return}let list=active().map(t=>t.o).filter(o=>{for(let p=o;p;p=p.parent)if(!p.visible)return false;return true});let hits=ray.intersectObjects(list,true).filter(h=>h.distance<18);for(let h of hits){let o=h.object;while(o){if(o.userData.action){o.userData.action();return}o=o.parent}}}let mouse=new T.Vector2(),start=null;renderer.domElement.addEventListener('pointerdown',e=>{start={x:e.clientX,y:e.clientY,lastX:e.clientX,lastY:e.clientY,drag:false};renderer.domElement.setPointerCapture(e.pointerId)});renderer.domElement.addEventListener('pointermove',e=>{if(!start||renderer.xr.isPresenting||dialogOpen)return;if(Math.hypot(e.clientX-start.x,e.clientY-start.y)>6)start.drag=true;if(start.drag){yaw-=(e.clientX-start.lastX)*.004;pitch=Math.max(-1.1,Math.min(1.1,pitch-(e.clientY-start.lastY)*.004));camera.rotation.set(pitch,yaw,0,'YXZ')}start.lastX=e.clientX;start.lastY=e.clientY});renderer.domElement.addEventListener('pointerup',e=>{if(start&&!start.drag){mouse.set(e.clientX/innerWidth*2-1,-e.clientY/innerHeight*2+1);ray.setFromCamera(mouse,camera);cast(ray.ray.origin.clone(),ray.ray.direction.clone())}start=null});renderer.domElement.addEventListener('pointercancel',()=>start=null);
 const xrControllers=[];let xrFrame=null,lastXRAction=-Infinity;
