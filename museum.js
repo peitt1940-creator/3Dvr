@@ -101,8 +101,8 @@ function back(r,i){} // All navigation is now in the overhead console.
 let r=rooms[1];let help1=null;
 const memoryHelp=()=>makeInfo('星光記憶挑戰','轉頭觀察左右星空，記住星星亮起的順序。閃爍結束後依序點選，同一顆星可能連續亮起。',{choices:[{text:'開始挑戰',fn:()=>{closeInfo();if(!done[0])startMemory()}}]});
 const stage=new T.Group();stage.position.set(0,1.55,1.75);r.add(stage);
-// Concave curved sky, centered on the observation position. Five stars span 120 degrees, with randomized elevations and interior azimuths.
-const skyRadius=4.15, starRadius=3.85, skyAngle=136*Math.PI/180;
+// Concave curved sky, centered on the observation position. Five stars remain within a 100-degree horizontal field, with randomized elevations and interior azimuths.
+const skyRadius=4.15, starRadius=3.85, skyAngle=100*Math.PI/180;
 const skyGeo=new T.CylinderGeometry(skyRadius,skyRadius,3.45,80,1,true,Math.PI-skyAngle/2,skyAngle);
 const skyMat=new T.MeshBasicMaterial({color:0x101e30,side:T.BackSide,toneMapped:false});
 mesh(skyGeo,skyMat,0,.52,0,stage);
@@ -117,7 +117,7 @@ let m=new T.MeshBasicMaterial({color:new T.Color(starColors[i]).multiplyScalar(.
 // Keep the two outer stars 120 degrees apart, jitter the three inner positions,
 // and assign five separated elevations in a shuffled order. Stable during each round.
 function arrangeStars(){
- const angles=[-60,-30+(Math.random()-.5)*12,(Math.random()-.5)*12,30+(Math.random()-.5)*12,60];
+ const angles=[-43,-21.5+(Math.random()-.5)*8,(Math.random()-.5)*8,21.5+(Math.random()-.5)*8,43];
  const heights=[-.40,.04,.48,.92,1.36].map(y=>y+(Math.random()-.5)*.12);
  for(let i=heights.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[heights[i],heights[j]]=[heights[j],heights[i]]}
  // Keep the middle star clear of the start/status controls below.
