@@ -101,23 +101,35 @@ function back(r,i){} // All navigation is now in the overhead console.
 let r=rooms[1];let help1=null;
 const memoryHelp=()=>makeInfo('星光記憶挑戰','轉頭觀察左右星空，記住星星亮起的順序。閃爍結束後依序點選，同一顆星可能連續亮起。',{choices:[{text:'開始挑戰',fn:()=>{closeInfo();if(!done[0])startMemory()}}]});
 const stage=new T.Group();stage.position.set(0,1.55,1.75);r.add(stage);
-// Concave curved sky, centered on the observation position. Five stars span 135 degrees.
-const skyRadius=4.15, starRadius=3.85, skyAngle=150*Math.PI/180;
-const skyGeo=new T.CylinderGeometry(skyRadius,skyRadius,2.35,80,1,true,Math.PI-skyAngle/2,skyAngle);
+// Concave curved sky, centered on the observation position. Five stars span 120 degrees, with randomized elevations and interior azimuths.
+const skyRadius=4.15, starRadius=3.85, skyAngle=136*Math.PI/180;
+const skyGeo=new T.CylinderGeometry(skyRadius,skyRadius,3.45,80,1,true,Math.PI-skyAngle/2,skyAngle);
 const skyMat=new T.MeshBasicMaterial({color:0x101e30,side:T.BackSide,toneMapped:false});
-mesh(skyGeo,skyMat,0,.40,0,stage);
-for(let y of [-.78,1.58]){let rim=mesh(new T.TorusGeometry(skyRadius,.027,8,80,skyAngle),bronze,0,y,0,stage);rim.rotation.set(Math.PI/2,0,-Math.PI/2-skyAngle/2);}
+mesh(skyGeo,skyMat,0,.52,0,stage);
+for(let y of [-1.205,2.245]){let rim=mesh(new T.TorusGeometry(skyRadius,.027,8,80,skyAngle),bronze,0,y,0,stage);rim.rotation.set(Math.PI/2,0,-Math.PI/2-skyAngle/2);}
 
 const starGeo=(()=>{let shape=new T.Shape();for(let i=0;i<10;i++){let a=Math.PI/2+i*Math.PI/5,rad=i%2?.15:.32;let x=Math.cos(a)*rad,y=Math.sin(a)*rad;i?shape.lineTo(x,y):shape.moveTo(x,y)}shape.closePath();return new T.ExtrudeGeometry(shape,{depth:.065,bevelEnabled:true,bevelThickness:.025,bevelSize:.025,bevelSegments:2,steps:1})})();
 const starColors=[0xf3bd66,0x80cbbf,0x92a9ec,0xe0a2b7,0xe7d5a4];let stars=[],starsMat=[],starHalos=[],starRings=[],round=0,sequence=[],cursor=0,phase='idle',deadline=0,flashIndex=0,lit=-1,firstMemory=true;const lengths=[5,7];
 const memoryStatus=panel('準備好了？',0,-.60,-3.62,2.0,.30,stage,{size:78,bg:'#243b50'});const startBtn=panel('▶ 開始',0,-.99,-3.58,1.3,.33,stage,{size:76,bg:'#356d64'});hit(startBtn,()=>{if(!done[0]&&['idle','retry','next'].includes(phase))startMemory()},1);
-for(let i=0;i<5;i++){let angle=(-67.5+i*33.75)*Math.PI/180;let mount=new T.Group();mount.position.set(Math.sin(angle)*starRadius,i%2?.35:.78,-Math.cos(angle)*starRadius);mount.rotation.y=-angle;stage.add(mount);
+const starMounts=[];
+for(let i=0;i<5;i++){let mount=new T.Group();stage.add(mount);starMounts.push(mount);
 let m=new T.MeshBasicMaterial({color:new T.Color(starColors[i]).multiplyScalar(.32),toneMapped:false});starsMat.push(m);let star=mesh(starGeo,m,0,0,.06,mount);stars.push(star);tor(0,0,.025,.39,.014,bronze,mount);let halo=mesh(new T.CircleGeometry(.48,40),new T.MeshBasicMaterial({color:0xffcd57,transparent:true,opacity:.6,depthWrite:false,toneMapped:false}),0,0,-.005,mount);halo.visible=false;starHalos.push(halo);let flashRing=tor(0,0,.025,.46,.028,new T.MeshBasicMaterial({color:0xffffff,toneMapped:false}),mount);flashRing.visible=false;starRings.push(flashRing);let touch=mesh(new T.CircleGeometry(.48,24),new T.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false}),0,0,.16,mount);hit(touch,()=>pressStar(i),1);hit(star,()=>pressStar(i),1)}
+// Keep the two outer stars 120 degrees apart, jitter the three inner positions,
+// and assign five separated elevations in a shuffled order. Stable during each round.
+function arrangeStars(){
+ const angles=[-60,-30+(Math.random()-.5)*12,(Math.random()-.5)*12,30+(Math.random()-.5)*12,60];
+ const heights=[-.40,.04,.48,.92,1.36].map(y=>y+(Math.random()-.5)*.12);
+ for(let i=heights.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[heights[i],heights[j]]=[heights[j],heights[i]]}
+ // Keep the middle star clear of the start/status controls below.
+ if(heights[2]<.04){let j=heights.findIndex((h,k)=>k!==2&&h>.48);[heights[2],heights[j]]=[heights[j],heights[2]]}
+ starMounts.forEach((m,i)=>{let a=angles[i]*Math.PI/180;m.position.set(Math.sin(a)*starRadius,heights[i],-Math.cos(a)*starRadius);m.rotation.y=-a});
+}
+arrangeStars();
 function setStar(i,on){starsMat[i].color.copy(on?new T.Color(0xfff7bc):new T.Color(starColors[i]).multiplyScalar(.32));stars[i].scale.setScalar(on?1.23:1);starHalos[i].visible=on;starRings[i].visible=on}
 function resetStars(){stars.forEach((_,i)=>setStar(i,false));lit=-1}
 function memoryText(t){change(memoryStatus,t,{size:75,bg:'#243b50'});$('#note').textContent=t}
 function startMemory(){if(done[0]||station!==1)return;resetStars();cursor=0;flashIndex=0;sequence=Array.from({length:lengths[round]},()=>Math.floor(Math.random()*stars.length));phase='wait';deadline=performance.now()+850;startBtn.visible=false;memoryText('第 '+(round+1)+' / 2 題 · 看星星')}
-function tickMemory(t){if(station!==1||dialogOpen||done[0]||t<deadline)return;if(phase==='wait'){lit=sequence[flashIndex];setStar(lit,true);phase='flash';deadline=t+1200}else if(phase==='flash'){resetStars();flashIndex++;phase='gap';deadline=t+500}else if(phase==='gap'){if(flashIndex<sequence.length){lit=sequence[flashIndex];setStar(lit,true);phase='flash';deadline=t+1200}else{phase='input';memoryText('換你了！ 0 / '+sequence.length)}}else if(phase==='tap'){resetStars();phase='input'}else if(phase==='advance'){resetStars();round++;phase='next';startBtn.visible=true;change(startBtn,'▶ 下一題',{size:76,bg:'#356d64'});memoryText('準備第 '+(round+1)+' / 2 題')}else if(phase==='failed'){resetStars();phase='retry';startBtn.visible=true;change(startBtn,'↻ 再試一次',{size:70,bg:'#356d64'});memoryText('再試一次，沒關係！')}}
+function tickMemory(t){if(station!==1||dialogOpen||done[0]||t<deadline)return;if(phase==='wait'){lit=sequence[flashIndex];setStar(lit,true);phase='flash';deadline=t+1200}else if(phase==='flash'){resetStars();flashIndex++;phase='gap';deadline=t+500}else if(phase==='gap'){if(flashIndex<sequence.length){lit=sequence[flashIndex];setStar(lit,true);phase='flash';deadline=t+1200}else{phase='input';memoryText('換你了！ 0 / '+sequence.length)}}else if(phase==='tap'){resetStars();phase='input'}else if(phase==='advance'){resetStars();round++;arrangeStars();phase='next';startBtn.visible=true;change(startBtn,'▶ 下一題',{size:76,bg:'#356d64'});memoryText('準備第 '+(round+1)+' / 2 題')}else if(phase==='failed'){resetStars();phase='retry';arrangeStars();startBtn.visible=true;change(startBtn,'↻ 再試一次',{size:70,bg:'#356d64'});memoryText('再試一次，沒關係！')}}
 function pressStar(i){if(phase!=='input'||done[0])return;setStar(i,true);if(sequence[cursor]!==i){phase='failed';deadline=performance.now()+450;memoryText('順序不一樣');return}cursor++;memoryText('答對 '+cursor+' / '+sequence.length);if(cursor===sequence.length){if(round===lengths.length-1){done[0]=true;phase='done';stars.forEach((_,j)=>setStar(j,true));memoryText('★ 挑戰完成！');update()}else{phase='advance';deadline=performance.now()+900;memoryText('★ 第 '+(round+1)+' 題成功！')}}else{phase='tap';deadline=performance.now()+150}}
 back(r,1);
 // V10: compare four mystery solids on an equal-arm balance and order them.
@@ -203,7 +215,7 @@ function refreshMoveLabel(){if(menuToggle)change(menuToggle,smoothMove?'搖桿�
 function toggleMovement(){smoothMove=!smoothMove;keys.clear();refreshMoveLabel()}
 function setMenu(open){menuOpen=open;if(xrMenu)xrMenu.visible=renderer.xr.isPresenting&&open;if(menuConfirm)menuConfirm.visible=false;if(ceilingConsoles[station])ceilingConsoles[station].visible=!open&&!xrHelp}
 function requestReset(){if(menuConfirm){menuConfirm.visible=true}}
-function resetGameInVR(){clearSuccess();smoothMove=false;keys.clear();closeInfo();clearXRHelp();clearHeld();setMenu(false);done[0]=false;done[1]=false;done[2]=false;round=0;sequence=[];cursor=0;phase='idle';deadline=0;flashIndex=0;resetStars();startBtn.visible=true;change(startBtn,'▶ 開始',{size:76,bg:'#356d64'});memoryText('準備好了？');firstMemory=true;firstBalance=true;firstPuzzle=true;resetBalance();resetPuzzle();update();refreshMoveLabel();go(0)}
+function resetGameInVR(){clearSuccess();smoothMove=false;keys.clear();closeInfo();clearXRHelp();clearHeld();setMenu(false);done[0]=false;done[1]=false;done[2]=false;round=0;sequence=[];cursor=0;phase='idle';deadline=0;flashIndex=0;resetStars();arrangeStars();startBtn.visible=true;change(startBtn,'▶ 開始',{size:76,bg:'#356d64'});memoryText('準備好了？');firstMemory=true;firstBalance=true;firstPuzzle=true;resetBalance();resetPuzzle();update();refreshMoveLabel();go(0)}
 async function exitVR(){let session=renderer.xr.getSession();if(session)try{await session.end()}catch(e){$('#note').textContent='請使用頭戴裝置的系統選單離開 VR。'}}
 function addMenuButton(text,x,y,w,callback,bg='#243b50',parent=xrMenu){let p=panel(text,x,y,.015,w,.33,parent,{size:79,bg});hit(p,callback,-1);return p}
 function buildVRMenu(){xrMenu=new T.Group();scene.add(xrMenu);let base=mesh(new T.PlaneGeometry(2.05,1.93),new T.MeshBasicMaterial({color:0x101e2c}),0,-.12,-.025,xrMenu);panel('探索館選單',0,.67,.015,1.88,.28,xrMenu,{size:80});addMenuButton('返回主展館',0,.29,1.82,()=>{setMenu(false);go(0)});menuToggle=addMenuButton('搖桿移動：關閉',0,-.10,1.82,toggleMovement);addMenuButton('重新開始',-.47,-.50,.88,requestReset,'#5c4b39');addMenuButton('退出 VR',.47,-.50,.88,()=>{setMenu(false);exitVR()},'#5c4b39');addMenuButton('關閉選單',0,-.87,1.82,()=>setMenu(false),'#356d64');menuConfirm=new T.Group();menuConfirm.position.set(0,0,.075);xrMenu.add(menuConfirm);mesh(new T.PlaneGeometry(1.96,1.17),new T.MeshBasicMaterial({color:0x172c39}),0,-.05,0,menuConfirm);panel('清除進度，重新開始？',0,.27,.015,1.82,.29,menuConfirm,{size:70});addMenuButton('確定',-.46,-.17,.83,resetGameInVR,'#795143',menuConfirm);addMenuButton('取消',.46,-.17,.83,()=>menuConfirm.visible=false,'#356d64',menuConfirm);menuConfirm.visible=false;xrMenu.visible=false;
@@ -234,7 +246,7 @@ let middleMark=tor(0,.048,1.70,.62,.045,jade,rooms[2]);middleMark.rotation.x=-Ma
 let successGroup=null,successActions=[],successParticles=[],successReady=false,successStart=0,successRoom=0,successPending=0;
 const successNames=['星光記憶','天秤推理','立體拼圖'];
 function clearSuccess(){successPending=0;successReady=false;successActions=[];successParticles=[];if(successGroup){scene.remove(successGroup);successGroup.traverse(o=>{if(o.isMesh){o.geometry.dispose();o.material.map?.dispose();o.material.dispose()}});successGroup=null}}
-function replayChallenge(i){clearSuccess();done[i-1]=false;if(i===1){round=0;sequence=[];cursor=0;phase='idle';deadline=0;flashIndex=0;resetStars();startBtn.visible=true;change(startBtn,'▶ 開始',{size:76,bg:'#356d64'});memoryText('準備好了？');firstMemory=false}else if(i===2){resetBalance();firstBalance=false}else if(i===3){resetPuzzle();firstPuzzle=false}go(i)}
+function replayChallenge(i){clearSuccess();done[i-1]=false;if(i===1){round=0;sequence=[];cursor=0;phase='idle';deadline=0;flashIndex=0;resetStars();arrangeStars();startBtn.visible=true;change(startBtn,'▶ 開始',{size:76,bg:'#356d64'});memoryText('準備好了？');firstMemory=false}else if(i===2){resetBalance();firstBalance=false}else if(i===3){resetPuzzle();firstPuzzle=false}go(i)}
 function beginSuccess(i){clearSuccess();clearXRHelp();setMenu(false);keys.clear();successPending=i;}
 function viewerAnchor(){rig.updateWorldMatrix(true,true);let pos=new T.Vector3(),dir=new T.Vector3(0,0,-1),pose=null;if(renderer.xr.isPresenting){try{pose=xrFrame?.getViewerPose(renderer.xr.getReferenceSpace())}catch{}if(pose){let m=new T.Matrix4().fromArray(pose.transform.matrix).premultiply(rig.matrixWorld);pos.setFromMatrixPosition(m);dir.transformDirection(m)}else{let cam=renderer.xr.getCamera();cam.getWorldPosition(pos);cam.getWorldDirection(dir)}}else{camera.getWorldPosition(pos);camera.getWorldDirection(dir)}dir.y=0;if(dir.lengthSq()<.01)dir.set(0,0,-1);dir.normalize();return {pos,dir}}
 function createSuccess(i,t){successRoom=i;successGroup=new T.Group();scene.add(successGroup);let {pos,dir}=viewerAnchor();successGroup.position.copy(pos).addScaledVector(dir,3.35);successGroup.position.y=pos.y+.04;successGroup.lookAt(pos);let g=successGroup;
